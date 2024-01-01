@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -62,10 +63,11 @@ class DecimalNumberPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isMax = value.floor() == maxValue;
+    final isMax = value.abs().floor() * value.sign == maxValue;
     final tenPow = math.pow(10, decimalPlaces);
-    final decimalValue =
-        isMax ? 0 : ((value - value.floorToDouble()) * tenPow).round();
+    final decimalValue = isMax
+        ? 0
+        : ((value.abs() - value.abs().floorToDouble()) * tenPow).round();
     final doubleMaxValue = isMax ? 0 : tenPow.toInt() - 1;
     final decimalStep =
         (tenPow > decimalStepCount) ? tenPow ~/ decimalStepCount : 1;
@@ -75,7 +77,7 @@ class DecimalNumberPicker extends StatelessWidget {
         NumberPicker(
           minValue: minValue,
           maxValue: maxValue,
-          value: value.floor(),
+          value: value.abs().floor() * value.sign.toInt(),
           onChanged: _onIntChanged,
           itemCount: itemCount,
           itemHeight: itemHeight,
@@ -108,14 +110,19 @@ class DecimalNumberPicker extends StatelessWidget {
 
   void _onIntChanged(int intValue) {
     final newValue =
-        (value - value.floor() + intValue).clamp(minValue, maxValue);
-    onChanged(newValue.toDouble());
+        ((value.abs() - value.abs().floorToDouble() + intValue.abs()) *
+                intValue.sign)
+            .clamp(minValue, maxValue);
+    onChanged(double.parse(newValue.toStringAsFixed(decimalPlaces)));
   }
 
   void _onDoubleChanged(int doubleValue) {
     final decimalPart = double.parse(
         (doubleValue * math.pow(10, -decimalPlaces))
             .toStringAsFixed(decimalPlaces));
-    onChanged(value.floor() + decimalPart);
+    final posValue = value.abs().floorToDouble() + decimalPart;
+    final newValue = (value == 0 ? posValue : (value.sign * posValue))
+        .clamp(minValue, maxValue);
+    onChanged(double.parse(newValue.toStringAsFixed(decimalPlaces)));
   }
 }
